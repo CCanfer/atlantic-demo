@@ -34,8 +34,8 @@ namespace Atlantic.Auth.Controllers
 
             var hash = _passwordHasher.HashPassword(new Usuario(), request.Password);
 
-            var query = "INSERT INTO Usuarios (Correo, PasswordHash) VALUES (@Correo, @PasswordHash)";
-            await connection.ExecuteAsync(query, new { request.Correo, PasswordHash = hash });
+            var query = "INSERT INTO Usuarios (Correo, PasswordHash, Rol) VALUES (@Correo, @PasswordHash, @Rol)";
+            await connection.ExecuteAsync(query, new { request.Correo, PasswordHash = hash, request.Rol });
 
             return Ok(new { mensaje = "Usuario registrado exitosamente." });
         }
