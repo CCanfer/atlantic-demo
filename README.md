@@ -36,3 +36,7 @@ CREATE TABLE DataProcesada
 );
 
 
+https://localhost:3000/api/auth/login
+https://localhost:3000/api/excel/upload
+
+
