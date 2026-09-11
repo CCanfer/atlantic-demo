@@ -1,0 +1,179 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: atlantic_sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=PasswordSeguro123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    networks:
+      - atlantic-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: atlantic_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - atlantic-network
+
+  # --- SEAWEEDFS COMPONENTS ---
+  seaweed-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: atlantic_seaweed_master
+    command: "master -ip=seaweed-master -port=9333"
+    ports:
+      - "9333:9333"
+    networks:
+      - atlantic-network
+
+  seaweed-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: atlantic_seaweed_volume
+    command: "volume -master=seaweed-master:9333 -ip=seaweed-volume -port=8080 -dir=/data"
+    ports:
+      - "8080:8080"
+    volumes:
+      - seaweeddata:/data
+    depends_on:
+      - seaweed-master
+    networks:
+      - atlantic-network
+
+  seaweed-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: atlantic_seaweed_filer
+    command: "filer -master=seaweed-master:9333"
+    ports:
+      - "8888:8888"
+    depends_on:
+      - seaweed-master
+      - seaweed-volume
+    networks:
+      - atlantic-network
+  # ----------------------------
+
+  auth:
+    build:
+      context: .
+      dockerfile: Atlantic.Auth/Dockerfile
+    container_name: atlantic_auth
+    ports:
+      - "3003:8080"
+    depends_on:
+      - sqlserver
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=AtlanticCityDB;User Id=sa;Password=PasswordSeguro123!;TrustServerCertificate=True;
+      - JwtSettings__SecretKey=AtlanticCityPruebaTecnica2026Project
+      - JwtSettings__Issuer=AtlanticAuth
+      - JwtSettings__Audience=AtlanticGateway
+    networks:
+      - atlantic-network
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Atlantic.Gateway/Dockerfile
+    container_name: atlantic_gateway
+    ports:
+      - "3000:8080"
+    depends_on:
+      - auth
+      - excel
+    environment:
+      - JwtSettings__SecretKey=AtlanticCityPruebaTecnica2026Project
+      - JwtSettings__Issuer=AtlanticAuth
+      - JwtSettings__Audience=AtlanticGateway
+      - ReverseProxy__Clusters__auth-cluster__Destinations__destination1__Address=http://auth:8080
+      - ReverseProxy__Clusters__excel-cluster__Destinations__destination1__Address=http://excel:8080
+    networks:
+      - atlantic-network
+
+  excel:
+    build:
+      context: .
+      dockerfile: Atlantic.Excel/Dockerfile
+    container_name: atlantic_excel
+    ports:
+      - "3002:8080"
+    depends_on:
+      - sqlserver
+      - rabbitmq
+      - seaweed-filer
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=AtlanticCityDB;User Id=sa;Password=PasswordSeguro123!;TrustServerCertificate=True;
+      - JwtSettings__SecretKey=AtlanticCityPruebaTecnica2026Project
+      - JwtSettings__Issuer=AtlanticAuth
+      - JwtSettings__Audience=AtlanticGateway
+      - SeaweedFS__FilerUrl=http://seaweed-filer:8888
+      - Rabbit__NameRabbit=AtlanticExcelClient
+      - Rabbit__UserName=guest
+      - Rabbit__Password=guest
+      - Rabbit__HostName=rabbitmq
+      - Rabbit__VHost=/
+      - Rabbit__Port=5672
+      - Rabbit__RequestedHeartbeat=60
+      - Rabbit__AutomaticRecoveryEnabled=true
+      - Rabbit__NetworkRecoveryInterval=10
+    networks:
+      - atlantic-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Atlantic.Worker/Dockerfile
+    container_name: atlantic_worker
+    depends_on:
+      - sqlserver
+      - rabbitmq
+      - seaweed-filer
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=AtlanticCityDB;User Id=sa;Password=PasswordSeguro123!;TrustServerCertificate=True;
+      - Rabbit__NameRabbit=AtlanticWorkerClient
+      - Rabbit__UserName=guest
+      - Rabbit__Password=guest
+      - Rabbit__HostName=rabbitmq
+      - Rabbit__VHost=/
+      - Rabbit__Port=5672
+      - Rabbit__RequestedHeartbeat=60
+      - Rabbit__AutomaticRecoveryEnabled=true
+      - Rabbit__NetworkRecoveryInterval=10
+      - SeaweedFS__FilerUrl=http://seaweed-filer:8888
+    networks:
+      - atlantic-network
+
+  notification:
+    build:
+      context: .
+      dockerfile: Atlantic.Notification/Dockerfile
+    container_name: atlantic_notification
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=AtlanticCityDB;User Id=sa;Password=PasswordSeguro123!;TrustServerCertificate=True;
+      - Rabbit__NameRabbit=AtlanticWorkerClient
+      - Rabbit__UserName=guest
+      - Rabbit__Password=guest
+      - Rabbit__HostName=rabbitmq
+      - Rabbit__VHost=/
+      - Rabbit__Port=5672
+      - Rabbit__RequestedHeartbeat=60
+      - Rabbit__AutomaticRecoveryEnabled=true
+      - Rabbit__NetworkRecoveryInterval=10
+    networks:
+      - atlantic-network
+
+volumes:
+  sqldata:
+  seaweeddata:
+
+networks:
+  atlantic-network:
+    driver: bridge

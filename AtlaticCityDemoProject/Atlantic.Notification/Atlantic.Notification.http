@@ -1,0 +1,6 @@
+@Atlantic.Notification_HostAddress = http://localhost:5133
+
+GET {{Atlantic.Notification_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

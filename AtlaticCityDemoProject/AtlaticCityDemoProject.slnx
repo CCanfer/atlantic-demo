@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Atlantic.Excel/Atlantic.Excel.csproj" />
+  <Project Path="Atlantic.Gateway/Atlantic.Gateway.csproj" />
+  <Project Path="Atlantic.Notification/Atlantic.Notification.csproj" />
+  <Project Path="Atlantic.Worker/Atlantic.Worker.csproj" />
+  <Project Path="Atlantic.Auth/Atlantic.Auth.csproj" />
+</Solution>

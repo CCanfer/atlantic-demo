@@ -1,0 +1,6 @@
+@Atlatic.Auth_HostAddress = http://localhost:5134
+
+GET {{Atlatic.Auth_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

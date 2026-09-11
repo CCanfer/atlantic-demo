@@ -1,0 +1,6 @@
+@Atlantic.Worker_HostAddress = http://localhost:5062
+
+GET {{Atlantic.Worker_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
