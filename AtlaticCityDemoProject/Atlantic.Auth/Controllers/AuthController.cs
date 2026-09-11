@@ -41,7 +41,7 @@ namespace Atlantic.Auth.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] AuthRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             using var connection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
 
