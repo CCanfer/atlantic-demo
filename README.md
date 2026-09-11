@@ -1,3 +1,4 @@
+
  ejecutar los siguientes scrips 
 
  CREATE TABLE Usuarios
@@ -39,4 +40,5 @@ CREATE TABLE DataProcesada
 https://localhost:3000/api/auth/login
 https://localhost:3000/api/excel/upload
 
+[excel_data.xlsx](https://github.com/user-attachments/files/32131113/excel_data.xlsx)
 
